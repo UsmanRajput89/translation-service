@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Http\Request;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,5 +21,17 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
-    })->create();
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status_code' => 401,
+                    'success' => false,
+                    'message' => 'Unauthenticated. Token may be missing or expired.'
+                ], 401);
+            }
+
+            // For non-JSON requests, fallback to default behavior
+            return redirect()->guest(route('login'));
+        });
+    })
+    ->create();
