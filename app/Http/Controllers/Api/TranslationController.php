@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Locale;
 use App\Models\Translation;
 use DB;
 use Illuminate\Http\Request;
@@ -33,6 +34,7 @@ class TranslationController extends Controller
             ->join('tags as tg', 'tg.id', '=', 'tt.tag_id')
             ->where('t.locale_id', $localeId)
             ->whereIn('tg.id', $tags)
+            ->groupBy('t.id', 'tg.id')
             ->get();
 
         $translations = collect($raw)->groupBy('id')->map(function ($items) {
@@ -57,21 +59,34 @@ class TranslationController extends Controller
     }
 
 
-    public function export()
+    public function store(Request $request)
     {
-        $translations = Translation::with(['locale', 'tags'])
-            ->get(['key', 'locale_id', 'content'])
-            ->map(function ($translation) {
-                return [
-                    'key' => $translation->key,
-                    'locale' => $translation->locale->code,
-                    'content' => $translation->content,
-                    'tags' => $translation->tags->pluck('name'),
-                ];
-            });
+        $request->validate([
+            'key' => 'required|string',
+            'translations' => 'required|array|min:1',
+            'translations.*.locale' => 'required|exists:locales,code', 
+            'translations.*.content' => 'nullable|string',
+            'translations.*.tags' => 'array',
+            'translations.*.tags.*' => 'exists:tags,id',
+        ]);
 
-        return response()->json($translations);
+        foreach ($request->translations as $t) {
+            $locale = Locale::where('code', $t['locale'])->first();
+
+            $translation = Translation::create([
+                'key' => $request->key,
+                'locale_id' => $locale->id,
+                'content' => $t['content'] ?? '',
+            ]);
+
+            if (!empty($t['tags'])) {
+                $translation->tags()->sync($t['tags']);
+            }
+        }
+
+        return response()->json(['message' => 'Translations created successfully.'], 201);
     }
 
-    // Implement store(), update(), destroy() as needed...
+
+
 }
