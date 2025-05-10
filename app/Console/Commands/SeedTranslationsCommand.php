@@ -2,59 +2,51 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Locale;
+use App\Models\Tag;
+use App\Models\Translation;
 use Illuminate\Console\Command;
-
+use Faker\Factory;
 
 class SeedTranslationsCommand extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'app:seed-translations-command';
+    protected $description = 'Seed translations with locales and tags';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Command description';
-
-    /**
-     * Execute the console command.
-     */
     public function handle()
     {
+        $faker = Factory::create();
+
         $locales = ['en', 'fr', 'es'];
-        $tags = ['web', 'mobile', 'desktop'];
-
-        // Seed Locales
         foreach ($locales as $code) {
-            \App\Models\Locale::firstOrCreate(['code' => $code], ['name' => $code]);
+            Locale::firstOrCreate(['code' => $code], ['name' => $code]);
         }
 
-        // Seed Tags
+        $tags = ['web', 'mobile', 'desktop'];
         foreach ($tags as $tag) {
-            \App\Models\Tag::firstOrCreate(['name' => $tag]);
+            Tag::firstOrCreate(['name' => $tag]);
         }
 
-        // Seed 100 translations (in chunks)
-        $chunkSize = 10;
-        $totalRecords = 100;
+        $uniqueKeys = [];
+        for ($i = 0; $i < 30; $i++) {
+            $uniqueKeys[] = 'key_' . $faker->unique()->word;
+        }
 
-        for ($i = 0; $i < $totalRecords; $i += $chunkSize) {
-            // Correct way to use factories
-            $translations = \App\Models\Translation::factory()->count($chunkSize)->create();
+        foreach ($uniqueKeys as $key) {
+            foreach ($locales as $localeCode) {
+                $translation = Translation::create([
+                    'key' => $key,
+                    'locale_id' => Locale::where('code', $localeCode)->first()->id,
+                    'content' => "[$localeCode] Content for $key",
+                ]);
 
-            // Attach random tags (1-3 per translation)
-            $translations->each(function ($translation) {
+                // Attach 1-3 random tags
                 $translation->tags()->attach(
-                    \App\Models\Tag::inRandomOrder()->limit(rand(1, 3))->pluck('id')
+                    Tag::inRandomOrder()->limit(rand(1, 3))->pluck('id')
                 );
-            });
+            }
         }
 
-        $this->info("Successfully seeded $totalRecords translations!");
+        $this->info("Successfully seeded 90 translations (30 keys × 3 locales)!");
     }
 }
