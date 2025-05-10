@@ -4,30 +4,55 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Translation;
+use DB;
 use Illuminate\Http\Request;
 
 class TranslationController extends Controller
 {
-    public function index(Request $request)
-    {
-        $query = Translation::with(['locale', 'tags'])
-            ->when($request->key, fn($q, $key) => $q->where('key', 'like', "%$key%"))
-            ->when($request->tag, fn($q, $tag) => $q->whereHas('tags', fn($q) => $q->where('name', $tag)))
-            ->when($request->content, fn($q, $content) => $q->where('content', 'like', "%$content%"));
-
-        return response()->json($query->paginate(20));
-    }
-
-
     public function getAllTranslations(Request $request)
     {
-        $query = Translation::with(['locale', 'tags']);
+        $localeId = $request->query('locale');
+        $tags = $request->query('tags');
 
-        if ($locale = $request->query('locale')) {
-            $query->whereHas('locale', fn($q) => $q->where('code', $locale));
+        if (!$localeId || !$tags || !is_array($tags)) {
+            return response()->json(['error' => 'Missing locale or tags parameter.'], 422);
         }
 
-        $translations = $query->get();
+        $raw = DB::table('translations as t')
+            ->select(
+                't.id',
+                't.key',
+                't.content',
+                't.locale_id',
+                'l.code as locale_code',
+                'tg.id as tag_id',
+                'tg.name as tag_name'
+            )
+            ->join('locales as l', 'l.id', '=', 't.locale_id')
+            ->join('tag_translation as tt', 'tt.translation_id', '=', 't.id')
+            ->join('tags as tg', 'tg.id', '=', 'tt.tag_id')
+            ->where('t.locale_id', $localeId)
+            ->whereIn('tg.id', $tags)
+            ->get();
+
+        $translations = collect($raw)->groupBy('id')->map(function ($items) {
+            $first = $items->first();
+            return [
+                'id' => $first->id,
+                'key' => $first->key,
+                'content' => $first->content,
+                'locale_id' => $first->locale_id,
+                'locale_code' => $first->locale_code,
+                'tags' => $items->map(function ($item) {
+                    return [
+                        'id' => $item->tag_id,
+                        'name' => $item->tag_name,
+                    ];
+                })->unique('id')->values(),
+            ];
+        })->values();
+
+
         return response()->json($translations);
     }
 
