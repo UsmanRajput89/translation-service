@@ -16,16 +16,15 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Route::get('translations', [TranslationController::class, 'getAllTranslations']);
     Route::prefix('translations')->group(function () {
         Route::get('/', [TranslationController::class, 'getAllTranslations']);          
         Route::post('/create', [TranslationController::class, 'store']);
         Route::get('/search', [TranslationController::class, 'search']); 
+        Route::get('/export', [TranslationController::class, 'export']); 
         Route::put('/{id}', [TranslationController::class, 'update']);      
         Route::get('/{id}', [TranslationController::class, 'show']);       
     });
 
-    Route::get('translations/export', [TranslationController::class, 'export']);
 
 
 

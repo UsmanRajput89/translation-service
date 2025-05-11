@@ -137,10 +137,10 @@ class TranslationController extends Controller
     public function search(Request $request)
     {
         $searchQuery = $request->query('query');
-        $tags = $request->query('tags'); 
+        $tags = $request->query('tags');
         $localeId = $request->query('locale');
 
-        if ( !$localeId) {
+        if (!$localeId) {
             return response()->json([
                 'message' => 'locale parameter is required.'
             ], 422);
@@ -230,6 +230,25 @@ class TranslationController extends Controller
     }
 
 
+    public function export(Request $request)
+    {
+        $localeCode = $request->query('locale');
+
+        if (!$localeCode) {
+            return response()->json(['error' => 'locale parameter is required.'], 422);
+        }
+
+        $locale = Locale::where('code', $localeCode)->first();
+
+        if (!$locale) {
+            return response()->json(['error' => 'Invalid locale code.'], 404);
+        }
+
+        $translations = Translation::where('locale_id', $locale->id)
+            ->pluck('content', 'key'); // returns [key => content]
+
+        return response()->json($translations);
+    }
 
 
 }
