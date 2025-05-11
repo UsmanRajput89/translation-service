@@ -195,11 +195,14 @@ class TranslationController extends Controller
             return response()->json(['error' => 'Invalid locale code.'], 404);
         }
 
+        // Fetch translations as an array
         $translations = Translation::where('locale_id', $locale->id)
-            ->pluck('content', 'key');
+            ->pluck('content', 'key')
+            ->toArray(); // Ensure it's an array for the JSON response
 
         return response()->json($translations);
     }
+
 
 
 }
