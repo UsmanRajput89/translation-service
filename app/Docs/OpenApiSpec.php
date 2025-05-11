@@ -1,6 +1,6 @@
 <?php
 
-namespace App\docs;
+namespace App\Docs;
 
 use OpenApi\Annotations as OA;
 

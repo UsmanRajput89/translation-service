@@ -12,7 +12,7 @@
                     "Authentication"
                 ],
                 "summary": "User login",
-                "operationId": "7bbce12448624bfec7d273e5c4d49bce",
+                "operationId": "a0aae21711f5d542ccf6bf65db12ac16",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -56,7 +56,7 @@
                 ],
                 "summary": "User logout",
                 "description": "Logs out the authenticated user by revoking their current access token.",
-                "operationId": "e7d762db86a9bc2e2289bf49afafba24",
+                "operationId": "4ea4958856cf10e93900ae6036306faa",
                 "responses": {
                     "200": {
                         "description": "Successful logout",
@@ -92,7 +92,7 @@
                 ],
                 "summary": "Create a new translation",
                 "description": "Create a new translation with all it's translations",
-                "operationId": "f33ede223c763dcab9a4e74171380ef3",
+                "operationId": "fa14b94dcc20715c15683c8ba97ecbaa",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -153,7 +153,7 @@
                     "Translations"
                 ],
                 "summary": "Get a single translation",
-                "operationId": "e23a56179b53c1c1a0fd73509bcef906",
+                "operationId": "8a10272b8d6b3c0474b5a9c9eac5c542",
                 "parameters": [
                     {
                         "name": "id",
@@ -184,7 +184,7 @@
                 ],
                 "summary": "Update a translation",
                 "description": "Update a translation",
-                "operationId": "a5cb050be20f56c1ce385df0166adef0",
+                "operationId": "322ec92228a31633e9f671976f3a2df1",
                 "parameters": [
                     {
                         "name": "id",
@@ -248,7 +248,7 @@
                 ],
                 "summary": "Search translations",
                 "description": "Search translations by key, content or tags",
-                "operationId": "0e8e57c1d0fe6abb8a7320538657df42",
+                "operationId": "9b72f9d1591c0272ec7138de382e2eb9",
                 "parameters": [
                     {
                         "name": "query",
@@ -306,7 +306,7 @@
                 ],
                 "summary": "Export translations",
                 "description": "Export translations for a given locale",
-                "operationId": "9f227c61c766f0f5cacdb54bab6df4a2",
+                "operationId": "242d2065b96b8571922bc8bfe6a4e04a",
                 "parameters": [
                     {
                         "name": "locale",
