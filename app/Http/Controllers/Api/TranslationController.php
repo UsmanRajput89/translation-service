@@ -7,58 +7,52 @@ use App\Models\Locale;
 use App\Models\Translation;
 use DB;
 use Illuminate\Http\Request;
-
+/**
+ * @OA\Tag(
+ *     name="Translations",
+ *     description="API Endpoints for managing translations"
+ * )
+ */
 class TranslationController extends Controller
 {
-    public function getAllTranslations(Request $request)
-    {
-        $localeId = $request->query('locale');
-        $tags = $request->query('tags');
+   
 
-        if (!$localeId || !$tags || !is_array($tags)) {
-            return response()->json(['error' => 'Missing locale or tags parameter.'], 422);
-        }
-
-        $raw = DB::table('translations as t')
-            ->select(
-                't.id',
-                't.key',
-                't.content',
-                't.locale_id',
-                'l.code as locale_code',
-                'tg.id as tag_id',
-                'tg.name as tag_name'
-            )
-            ->join('locales as l', 'l.id', '=', 't.locale_id')
-            ->join('tag_translation as tt', 'tt.translation_id', '=', 't.id')
-            ->join('tags as tg', 'tg.id', '=', 'tt.tag_id')
-            ->where('t.locale_id', $localeId)
-            ->whereIn('tg.id', $tags)
-            ->groupBy('t.id', 'tg.id')
-            ->get();
-
-        $translations = collect($raw)->groupBy('id')->map(function ($items) {
-            $first = $items->first();
-            return [
-                'id' => $first->id,
-                'key' => $first->key,
-                'content' => $first->content,
-                'locale_id' => $first->locale_id,
-                'locale_code' => $first->locale_code,
-                'tags' => $items->map(function ($item) {
-                    return [
-                        'id' => $item->tag_id,
-                        'name' => $item->tag_name,
-                    ];
-                })->unique('id')->values(),
-            ];
-        })->values();
-
-
-        return response()->json($translations);
-    }
-
-
+    /**
+     * @OA\Post(
+     *     path="/api/translations/create",
+     *     summary="Create a new translation",
+     *     description="Create a new translation with all it's translations",
+     *     tags={"Translations"},
+     *     security={{ "sanctum": {} }},
+     *     @OA\RequestBody(
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 required={"key", "translations"},
+     *                 @OA\Property(property="key", type="string"),
+     *                 @OA\Property(
+     *                     property="translations",
+     *                     type="array",
+     *                     @OA\Items(
+     *                         @OA\Property(property="locale", type="string", description="The locale of the translation"),
+     *                         @OA\Property(property="content", type="string", description="The content of the translation"),
+     *                         @OA\Property(
+     *                             property="tags",
+     *                             type="array",
+     *                             description="The tags of the translation",
+     *                             @OA\Items(type="integer", description="The id of the tag")
+     *                         )
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Created"
+     *     )
+     * )
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -87,6 +81,52 @@ class TranslationController extends Controller
         return response()->json(['message' => 'Translations created successfully.'], 201);
     }
 
+
+    /**
+     * @OA\Put(
+     *     path="/api/translations/{id}",
+     *     summary="Update a translation",
+     *     description="Update a translation",
+     *     tags={"Translations"},
+     *     security={{ "sanctum": {} }},
+     *     @OA\Parameter(
+     *         description="ID of translation to return",
+     *         in="path",
+     *         name="id",
+     *         required=true,
+     *         @OA\Schema(
+     *             type="integer",
+     *             format="int64"
+     *         )
+     *     ),
+     *     @OA\RequestBody(
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 type="object",
+     *                 @OA\Property(
+     *                     property="content",
+     *                     type="string",
+     *                     description="The content of the translation"
+     *                 ),
+     *                 @OA\Property(
+     *                     property="tags",
+     *                     type="array",
+     *                     description="The tags of the translation",
+     *                     @OA\Items(type="integer", description="The id of the tag")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="successful operation"
+     *     ),
+     *     @OA\Response(response=400, description="Invalid ID supplied"),
+     *     @OA\Response(response=404, description="Translation not found"),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     * )
+     */
 
     public function update(Request $request, $id)
     {
@@ -120,7 +160,28 @@ class TranslationController extends Controller
         ]);
     }
 
-
+    /**
+     * @OA\Get(
+     *     path="/api/translations/{id}",
+     *     summary="Get a single translation",
+     *     tags={"Translations"},
+     *     security={{ "sanctum": {} }},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     )
+     * )
+     */
     public function show($id)
     {
         $translation = Translation::with(['tags:id,name', 'locale:id,code,name'])->findOrFail($id);
@@ -134,6 +195,47 @@ class TranslationController extends Controller
         ]);
     }
 
+
+    /**
+     * @OA\Get(
+     *     path="/api/translations/search",
+     *     summary="Search translations",
+     *     description="Search translations by key, content or tags",
+     *     tags={"Translations"},
+     *     security={{ "sanctum": {} }},
+     *     @OA\Parameter(
+     *         description="Search query",
+     *         in="query",
+     *         name="query",
+     *         required=false,
+     *         example="Hello World"
+     *     ),
+     *     @OA\Parameter(
+     *         description="Array of tag IDs",
+     *         in="query",
+     *         name="tags",
+     *         required=false,
+     *         @OA\Schema(
+     *             type="array",
+     *             @OA\Items(type="integer", example=1)
+     *         )
+     *     ),
+     *     @OA\Parameter(
+     *         description="Locale ID",
+     *         in="query",
+     *         name="locale",
+     *         required=true,
+     *         example=1
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="successful operation"
+     *     ),
+     *     @OA\Response(response=400, description="Invalid ID supplied"),
+     *     @OA\Response(response=404, description="Translation not found"),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     * )
+     */
     public function search(Request $request)
     {
         $searchQuery = $request->query('query');
@@ -230,6 +332,30 @@ class TranslationController extends Controller
     }
 
 
+    /**
+     * @OA\Get(
+     *     path="/api/translations/export",
+     *     summary="Export translations",
+     *     description="Export translations for a given locale",
+     *     tags={"Translations"},
+     *     security={{ "sanctum": {} }},
+     *     @OA\Parameter(
+     *         description="Locale code",
+     *         in="query",
+     *         name="locale",
+     *         required=true,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation"
+     *     ),
+     *     @OA\Response(response=422, description="Locale parameter is required"),
+     *     @OA\Response(response=404, description="Invalid locale code"),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     * )
+     */
+
     public function export(Request $request)
     {
         $localeCode = $request->query('locale');
@@ -249,7 +375,7 @@ class TranslationController extends Controller
         }
 
         $translations = Translation::where('locale_id', $locale->id)
-            ->pluck('content', 'key'); 
+            ->pluck('content', 'key');
 
         return response()->json($translations);
     }
