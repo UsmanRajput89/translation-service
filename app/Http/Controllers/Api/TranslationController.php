@@ -234,6 +234,10 @@ class TranslationController extends Controller
     {
         $localeCode = $request->query('locale');
 
+        if ($localeCode) {
+            $localeCode = filter_var($localeCode, FILTER_SANITIZE_STRING);
+        }
+
         if (!$localeCode) {
             return response()->json(['error' => 'locale parameter is required.'], 422);
         }
@@ -245,7 +249,7 @@ class TranslationController extends Controller
         }
 
         $translations = Translation::where('locale_id', $locale->id)
-            ->pluck('content', 'key'); // returns [key => content]
+            ->pluck('content', 'key'); 
 
         return response()->json($translations);
     }
